@@ -1,9 +1,12 @@
 const e = require('express');
 const employeeService = require('../services/employee.service');
+const imageService = require('../services/image.service');
 const fs = require('fs');
 const path = require('path');
 const Employee = require('../models/employee.model');
 const { displayEmployeeImages } = require('../utils/imageUtils');
+const jwt = require('jsonwebtoken');
+const { auth, requireAdminOrSuperAdmin } = require('../middlewares/auth');
 
 const employeeController = {
   registerEmployee: async (req, res) => {
@@ -71,6 +74,7 @@ const employeeController = {
       const { employeeId } = req.params;
       const updateData = req.body;
       console.log("updateData = ", updateData);
+
       // Validate email format if provided
       if (updateData.email) {
         const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
@@ -95,14 +99,28 @@ const employeeController = {
         }
       }
 
-      const updatedEmployee = await employeeService.updateEmployee(employeeId, updateData);
-      if (!updatedEmployee) {
+      // Get existing employee data
+      const existingEmployee = await employeeService.getEmployeeByEmployeeId(employeeId);
+      if (!existingEmployee) {
         return res.status(404).json({
           status: 404,
           message: 'Employee not found',
           data: null
         });
       }
+
+      // Process images if provided
+      const processedImages = await imageService.processEmployeeImages(existingEmployee, {
+        faceBase64: updateData.imageAvatar,
+        faceEmbedding: updateData.faceEmbedding,
+        image34: updateData.imageAvatar
+      });
+
+      // Update employee with processed images
+      const updatedEmployee = await employeeService.updateEmployee(employeeId, {
+        ...updateData,
+        ...processedImages
+      });
 
       return res.status(200).json({
         status: 200,
@@ -268,16 +286,21 @@ const employeeController = {
         };
       }
 
+      // Xử lý hình ảnh
+      const processedImages = await imageService.processEmployeeImages({ employeeId: registrationData.employeeId }, {
+        faceBase64: registrationData.faceBase64,
+        faceEmbedding: registrationData.faceEmbedding
+      });
+
       // Tạo nhân viên mới
       const newEmployee = await employeeService.createEmployee({
         employeeId: registrationData.employeeId,
         fullName: registrationData.employeeName,
-        department: registrationData.department ,
-        position: registrationData.position ,
+        department: registrationData.department,
+        position: registrationData.position,
         shift: registrationData.shift,
         registrationDate: registrationData.registrationDate,
-        faceImage: registrationData.faceBase64,
-        imageAvatar: registrationData.faceEmbedding
+        ...processedImages
       });
 
       console.log('New employee registered:', newEmployee);
@@ -317,19 +340,24 @@ const employeeController = {
         };
       }
 
+      // Xử lý hình ảnh
+      const processedImages = await imageService.processEmployeeImages(existingEmployee.data, {
+        faceBase64: updateData.faceBase64,
+        faceEmbedding: updateData.faceEmbedding,
+        image34: updateData.image34
+      });
+
       // Cập nhật thông tin
       const updatedEmployee = await employeeService.updateEmployee(updateData.employeeId, {
         fullName: updateData.fullName,
-        faceImage: updateData.faceBase64,
-        imageAvatar: updateData.faceEmbeddin,
+        ...processedImages,
         department: existingEmployee.data.department,
         position: existingEmployee.data.position,
         shift: existingEmployee.data.shift,
         registrationDate: existingEmployee.data.registrationDate,
         email: existingEmployee.data.email,
         phone: existingEmployee.data.phone,
-        status: existingEmployee.data.status,
-        image34: existingEmployee.data.image34
+        status: existingEmployee.data.status
       });
 
       console.log('Employee updated:', updatedEmployee);
@@ -564,6 +592,47 @@ const employeeController = {
       res.status(500).json({ message: 'Error processing images', error: error.message });
     }
   },
+};
+
+// Xác thực JWT
+const auth = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ message: 'No token provided' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+};
+
+// Chỉ cho phép superadmin
+const requireSuperAdmin = (req, res, next) => {
+  if (req.user.role !== 'superadmin') {
+    return res.status(403).json({ message: 'Forbidden: Superadmin only' });
+  }
+  next();
+};
+
+// Cho phép superadmin hoặc admin
+const requireAdminOrSuperAdmin = (req, res, next) => {
+  if (!['superadmin', 'admin'].includes(req.user.role)) {
+    return res.status(403).json({ message: 'Forbidden' });
+  }
+  next();
+};
+
+// Phân quyền theo deviceId (nếu là admin)
+const deviceAccess = (req, res, next) => {
+  if (req.user.role === 'superadmin') return next();
+  const deviceId = req.params.deviceId || req.body.deviceId || req.query.deviceId;
+  if (!deviceId) return res.status(400).json({ message: 'Missing deviceId' });
+  if (!req.user.devices || !req.user.devices.includes(deviceId)) {
+    return res.status(403).json({ message: 'Bạn không có quyền truy cập thiết bị này' });
+  }
+  next();
 };
 
 module.exports = employeeController; 

@@ -99,9 +99,8 @@ class MQTTService {
           const updateData = {
             employeeId: processedData.data.employeeId,
             fullName: processedData.data.employeeName,
-            faceEmbedding: processedData.data.faceEmbedding,
-            faceBase64 : processedData.data.faceBase64,
-           
+            imageAvatar: processedData.data.faceEmbedding,
+            faceBase64: processedData.data.faceBase64
           };
 
           // Xử lý cập nhật thông qua controller

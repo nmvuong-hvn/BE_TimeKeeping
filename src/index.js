@@ -10,6 +10,8 @@ const positionRoutes = require('./routes/position.routes'); // Import position r
 const departmentRoutes = require('./routes/department.routes'); // Import department routes
 const checkinRoutes = require('./routes/checkin.routes'); // Import checkin routes
 const cors = require('cors'); // Import cors for handling cross-origin requests
+const path = require('path'); // Import path module
+const authRoutes = require('./routes/auth.routes'); // Import auth routes
 
 // Initialize Express app
 const app = express();
@@ -20,6 +22,9 @@ app.use(express.json());
 
 // Enable CORS
 app.use(cors());
+
+// Serve static files from the public directory
+app.use('/public', express.static(path.join(__dirname, '../public')));
 
 // Initialize Socket.IO
 const io = new Server(server, {
@@ -44,6 +49,7 @@ app.use('/api/employees', employeeRoutes);
 app.use('/api/positions', positionRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/checkins', checkinRoutes);
+app.use('/api/auth', authRoutes);
 // Connect to MQTT broker
 mqttService.connect();
 

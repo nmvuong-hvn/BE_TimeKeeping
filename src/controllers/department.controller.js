@@ -4,6 +4,7 @@ const departmentController = {
   getDepartmentByName: async (req, res) => {
     try {
       const { name } = req.params;
+      const userId = req.user.role === 'admin' ? req.user._id : null;
       
       if (!name) {
         return res.status(400).json({
@@ -13,7 +14,7 @@ const departmentController = {
         });
       }
 
-      const department = await departmentService.getDepartmentByName(name);
+      const department = await departmentService.getDepartmentByName(name, userId);
       
       if (!department) {
         return res.status(404).json({
@@ -40,7 +41,8 @@ const departmentController = {
 
   getAllDepartments: async (req, res) => {
     try {
-      const departments = await departmentService.getAllDepartments();
+      const userId = req.user.role === 'admin' ? req.user._id : null;
+      const departments = await departmentService.getAllDepartments(userId);
       return res.status(200).json({
         status: 200,
         message: 'Departments retrieved successfully',
@@ -81,11 +83,14 @@ const departmentController = {
     try {
       const departmentId = req.params.departmentId;
       const updateData = req.body;
+      const userId = req.user.role === 'admin' ? req.user._id : null;
+      
       // Prevent userId from being updated via request body
       if (updateData.userId) {
         delete updateData.userId;
       }
-      const updatedDepartment = await departmentService.updateDepartment(departmentId, updateData);
+      
+      const updatedDepartment = await departmentService.updateDepartment(departmentId, updateData, userId);
       if (!updatedDepartment) {
         return res.status(404).json({
           status: 404,
@@ -111,7 +116,9 @@ const departmentController = {
   deleteDepartment: async (req, res) => {
     try {
       const departmentId = req.params.departmentId;
-      const deletedDepartment = await departmentService.deleteDepartment(departmentId);
+      const userId = req.user.role === 'admin' ? req.user._id : null;
+      
+      const deletedDepartment = await departmentService.deleteDepartment(departmentId, userId);
       if (!deletedDepartment) {
         return res.status(404).json({
           status: 404,

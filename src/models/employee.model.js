@@ -60,6 +60,11 @@ const employeeSchema = new mongoose.Schema({
     type: String,
     required: false,
     trim: true
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false // Employee might not always be linked to a specific user for creation
   }
 }, {
   timestamps: true

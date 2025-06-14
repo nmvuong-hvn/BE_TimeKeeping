@@ -30,7 +30,7 @@ const positionController = {
       if (positionData.department) {
         departmentId = positionData.department;
         // Validate if department exists
-        const department = await departmentService.getDepartmentById(departmentId);
+        const department = await departmentService.getDepartmentById(departmentId, req.user.role === 'admin' ? req.user._id : null);
         if (!department) {
           return res.status(404).json({
             status: 404,
@@ -41,7 +41,7 @@ const positionController = {
       }
       // Handle department name if provided
       else if (positionData.departmentName) {
-        const department = await departmentService.getDepartmentByName(positionData.departmentName);
+        const department = await departmentService.getDepartmentByName(positionData.departmentName, req.user.role === 'admin' ? req.user._id : null);
         if (!department) {
           return res.status(404).json({
             status: 404,
@@ -60,7 +60,7 @@ const positionController = {
         });
       }
 
-      const existingPosition = await positionService.getPositionByName(positionData.name, departmentId);
+      const existingPosition = await positionService.getPositionByName(positionData.name, departmentId, req.user.role === 'admin' ? req.user._id : null);
       if (existingPosition) {
         return res.status(409).json({
           status: 409,
@@ -94,7 +94,8 @@ const positionController = {
 
   getAllPositions: async (req, res) => {
     try {
-      const positions = await positionService.getAllPositions();
+      const userId = req.user.role === 'admin' ? req.user._id : null;
+      const positions = await positionService.getAllPositions(userId);
       return res.status(200).json({
         status: 200,
         message: 'Positions retrieved successfully',
@@ -113,6 +114,7 @@ const positionController = {
   getPositionsByDepartment: async (req, res) => {
     try {
       const { departmentId } = req.params;
+      const userId = req.user.role === 'admin' ? req.user._id : null;
       
       if (!departmentId) {
         return res.status(400).json({
@@ -122,7 +124,7 @@ const positionController = {
         });
       }
 
-      const positions = await positionService.getPositionsByDepartment(departmentId);
+      const positions = await positionService.getPositionsByDepartment(departmentId, userId);
       return res.status(200).json({
         status: 200,
         message: 'Positions retrieved successfully',
@@ -142,6 +144,8 @@ const positionController = {
     try {
       const { positionId } = req.params;
       const updateData = req.body;
+      const userId = req.user.role === 'admin' ? req.user._id : null;
+      
       // Prevent userId from being updated via request body
       if (updateData.userId) {
         delete updateData.userId;
@@ -175,7 +179,7 @@ const positionController = {
       const updatedPosition = await positionService.updatePosition(positionId, {
         ...updateData,
         updatedAt: new Date()
-      });
+      }, userId);
 
       if (!updatedPosition) {
         return res.status(404).json({
@@ -203,6 +207,7 @@ const positionController = {
   deletePosition: async (req, res) => {
     try {
       const { positionId } = req.params;
+      const userId = req.user.role === 'admin' ? req.user._id : null;
 
       if (!positionId) {
         return res.status(400).json({
@@ -212,7 +217,7 @@ const positionController = {
         });
       }
 
-      const deletedPosition = await positionService.deletePosition(positionId);
+      const deletedPosition = await positionService.deletePosition(positionId, userId);
 
       if (!deletedPosition) {
         return res.status(404).json({

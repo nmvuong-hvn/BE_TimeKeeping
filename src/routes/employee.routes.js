@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const employeeController = require('../controllers/employee.controller');
+const { auth, requireAdminOrSuperAdmin, deviceAccess } = require('../middleware/auth');
 
 /**
  * @swagger
@@ -29,7 +30,7 @@ const employeeController = require('../controllers/employee.controller');
  *       500:
  *         description: Server error
  */
-router.get('/', employeeController.getAllEmployees);
+router.get('/', auth, requireAdminOrSuperAdmin, deviceAccess, employeeController.getAllEmployees);
 
 /**
  * @swagger
@@ -99,7 +100,7 @@ router.get('/', employeeController.getAllEmployees);
  *       500:
  *         description: Server error
  */
-router.get('/late', employeeController.getLateEmployees);
+router.get('/late', auth, requireAdminOrSuperAdmin, deviceAccess, employeeController.getLateEmployees);
 /**
  * @swagger
  * /api/employees/early-leave:
@@ -168,7 +169,7 @@ router.get('/late', employeeController.getLateEmployees);
  *       500:
  *         description: Server error
  */
-router.get('/early-leave', employeeController.getEarlyLeaveEmployees);
+router.get('/early-leave', auth, requireAdminOrSuperAdmin, deviceAccess, employeeController.getEarlyLeaveEmployees);
 
 
 /**
@@ -239,7 +240,7 @@ router.get('/early-leave', employeeController.getEarlyLeaveEmployees);
  *       500:
  *         description: Server error
  */
-router.get('/overtime', employeeController.getOvertimeEmployees);
+router.get('/overtime', auth, requireAdminOrSuperAdmin, deviceAccess, employeeController.getOvertimeEmployees);
 /**
  * @swagger
  * /api/employees/{employeeId}:
@@ -274,42 +275,62 @@ router.get('/overtime', employeeController.getOvertimeEmployees);
  *       500:
  *         description: Server error
  */
-router.get('/:employeeId', employeeController.getEmployeeById);
+router.get('/:employeeId', auth, requireAdminOrSuperAdmin, deviceAccess, employeeController.getEmployeeById);
 
 /**
  * @swagger
  * /api/employees:
  *   post:
- *     summary: Create a new employee
+ *     summary: Create a new employee (Admin or Superadmin only)
  *     tags: [Employees]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/EmployeeRequest'
+ *             type: object
+ *             required:
+ *               - employeeId
+ *               - fullName
+ *               - deviceId
+ *             properties:
+ *               employeeId:
+ *                 type: string
+ *               fullName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               department:
+ *                 type: string
+ *               position:
+ *                 type: string
+ *               shift:
+ *                 type: string
+ *               faceImage:
+ *                 type: string
+ *               imageAvatar:
+ *                 type: string
+ *               image34:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *               deviceId:
+ *                 type: string
  *     responses:
  *       201:
  *         description: Employee created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: number
- *                   example: 201
- *                 message:
- *                   type: string
- *                   example: Employee created successfully
- *                 data:
- *                   $ref: '#/components/schemas/Employee'
  *       400:
- *         description: Invalid input data
- *       500:
- *         description: Server error
+ *         description: Invalid input
+ *       403:
+ *         description: Forbidden - Admin or Superadmin access required, or device access denied
+ *       409:
+ *         description: Employee with this ID already exists
  */
-router.post('/', employeeController.registerEmployee);
+router.post('/', auth, requireAdminOrSuperAdmin, deviceAccess, employeeController.createEmployee);
 
 /**
  * @swagger
@@ -351,7 +372,7 @@ router.post('/', employeeController.registerEmployee);
  *       500:
  *         description: Server error
  */
-router.put('/:employeeId', employeeController.updateEmployee);
+router.put('/:employeeId',auth, requireAdminOrSuperAdmin, deviceAccess, employeeController.updateEmployee);
 
 /**
  * @swagger
@@ -387,7 +408,7 @@ router.put('/:employeeId', employeeController.updateEmployee);
  *       500:
  *         description: Server error
  */
-router.delete('/:employeeId', employeeController.deleteEmployee);
+router.delete('/:employeeId', auth, requireAdminOrSuperAdmin, deviceAccess, employeeController.deleteEmployee);
 
 
 
@@ -427,7 +448,7 @@ router.delete('/:employeeId', employeeController.deleteEmployee);
  *       500:
  *         description: Server error
  */
-router.put('/avatar/:employeeId', employeeController.updateEmployeeAvatar);
+router.put('/avatar/:employeeId', auth, requireAdminOrSuperAdmin, deviceAccess, employeeController.updateEmployeeAvatar);
 
 /**
  * @swagger
@@ -481,7 +502,7 @@ router.put('/avatar/:employeeId', employeeController.updateEmployeeAvatar);
  *       500:
  *         description: Server error
  */
-router.get('/by-department', employeeController.getEmployeesByDepartmentAndDate);
+router.get('/by-department', auth, requireAdminOrSuperAdmin, deviceAccess, employeeController.getEmployeesByDepartmentAndDate);
 
 /**
  * @swagger
@@ -539,7 +560,7 @@ router.get('/by-department', employeeController.getEmployeesByDepartmentAndDate)
  *       500:
  *         description: Server error
  */
-router.post('/test-checkin', employeeController.createTestCheckin);
+router.post('/test-checkin', auth, requireAdminOrSuperAdmin, deviceAccess, employeeController.createTestCheckin);
 
 /**
  * @swagger
@@ -634,6 +655,6 @@ router.post('/test-checkin', employeeController.createTestCheckin);
  *       500:
  *         description: Server error
  */
-router.get('/:employeeId/monthly-statistics', employeeController.getMonthlyStatistics);
+router.get('/:employeeId/monthly-statistics', auth, requireAdminOrSuperAdmin, deviceAccess, employeeController.getMonthlyStatistics);
 
 module.exports = router;

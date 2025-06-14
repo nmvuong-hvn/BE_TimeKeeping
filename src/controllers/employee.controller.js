@@ -4,9 +4,12 @@ const fs = require('fs');
 const path = require('path');
 const Employee = require('../models/employee.model');
 const { displayEmployeeImages } = require('../utils/imageUtils');
+const { calculateAge } = require('../utils/date.utils');
+const User = require('../models/user.model');
 
 const employeeController = {
   registerEmployee: async (req, res) => {
+    console.log("req.body = ", req.body);
     try {
       const employeeData = req.body;
       console.log("employeeData = ", employeeData);
@@ -70,32 +73,41 @@ const employeeController = {
     try {
       const { employeeId } = req.params;
       const updateData = req.body;
-      console.log("updateData = ", updateData);
-      // Validate email format if provided
-      if (updateData.email) {
-        const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-        if (!emailRegex.test(updateData.email)) {
-          return res.status(400).json({
-            status: 400,
-            message: 'Invalid email format',
+
+      let filter = { employeeId: employeeId };
+
+      if (req.user.role === 'admin') {
+        // Admin can only update employees linked to their devices or created by them
+        const employeeToUpdate = await employeeService.getEmployeeByEmployeeId(employeeId);
+
+        if (!employeeToUpdate) {
+          return res.status(404).json({
+            status: 404,
+            message: 'Employee not found',
             data: null
           });
         }
-      }
 
-      // Validate phone format if provided
-      if (updateData.phone) {
-        const phoneRegex = /^[0-9]{10}$/;
-        if (!phoneRegex.test(updateData.phone)) {
-          return res.status(400).json({
-            status: 400,
-            message: 'Invalid phone format. Must be 10 digits.',
+        const isAllowedByDevice = req.user.devices.includes(employeeToUpdate.deviceId);
+        const isCreatedByAdmin = employeeToUpdate.userId && employeeToUpdate.userId.toString() === req.user._id.toString();
+
+        if (!isAllowedByDevice && !isCreatedByAdmin) {
+          return res.status(403).json({
+            status: 403,
+            message: 'Forbidden: You do not have permission to update this employee.',
             data: null
           });
         }
-      }
+        // Add userId to updateData if admin is creating/updating, but only if it's not already set to another user
+        if (!employeeToUpdate.userId) {
+            updateData.userId = req.user._id;
+        }
 
-      const updatedEmployee = await employeeService.updateEmployee(employeeId, updateData);
+      }
+      // Superadmin has full access, no additional filter needed based on role
+
+      const updatedEmployee = await employeeService.updateEmployee(filter, updateData);
+
       if (!updatedEmployee) {
         return res.status(404).json({
           status: 404,
@@ -122,7 +134,30 @@ const employeeController = {
   deleteEmployee: async (req, res) => {
     try {
       const { employeeId } = req.params;
-      const deletedEmployee = await employeeService.deleteEmployee(employeeId);
+      let filter = { employeeId: employeeId };
+
+      if (req.user.role === 'admin') {
+        const employeeToDelete = await employeeService.getEmployeeByEmployeeId(employeeId);
+        if (!employeeToDelete) {
+          return res.status(404).json({
+            status: 404,
+            message: 'Employee not found',
+            data: null
+          });
+        }
+        const isAllowedByDevice = req.user.devices.includes(employeeToDelete.deviceId);
+        const isCreatedByAdmin = employeeToDelete.userId && employeeToDelete.userId.toString() === req.user._id.toString();
+
+        if (!isAllowedByDevice && !isCreatedByAdmin) {
+          return res.status(403).json({
+            status: 403,
+            message: 'Forbidden: You do not have permission to delete this employee.',
+            data: null
+          });
+        }
+      }
+
+      const deletedEmployee = await employeeService.deleteEmployee(filter);
       
       if (!deletedEmployee) {
         return res.status(404).json({
@@ -150,6 +185,7 @@ const employeeController = {
   getAllEmployees: async (req, res) => {
     try {
       let filter = {};
+      console.log("req.user.role = ", req.user);
       if (req.user.role === 'admin') {
         if (req.query.deviceId) {
           // If deviceId is provided in query, filter by that specific deviceId
@@ -242,12 +278,31 @@ const employeeController = {
 
       console.log("timestampData = ", timestampData);
 
+      // Authorization for admin users coming from MQTT (for check-in)
+      if (processedData.userId) { // userId is passed from mqtt.service if an admin manages the device
+          const managingUser = await User.findById(processedData.userId);
+
+          if (managingUser && managingUser.role === 'admin') {
+              const employeeCheckingIn = await employeeService.getEmployeeByEmployeeIdString(processedData.data.employeeId);
+              if (employeeCheckingIn.data) {
+                  const isAllowedByDevice = employeeCheckingIn.data.deviceId && managingUser.devices.includes(employeeCheckingIn.data.deviceId);
+                  if (!isAllowedByDevice) {
+                      console.warn(`MQTT Check-in: Admin user ${managingUser.username} does not have access to deviceId: ${employeeCheckingIn.data.deviceId}. Check-in ignored.`);
+                      return { status: 403, message: 'Forbidden: Admin does not have permission to check-in via this device.' };
+                  }
+              } else {
+                  console.warn(`MQTT Check-in: Employee ${processedData.data.employeeId} not found for authorization check. Proceeding with check-in without specific employee device auth.`);
+              }
+          }
+      }
+
       const checkinRecord = await employeeService.recordCheckin(
         processedData.data.deviceId,
         processedData.data.employeeId,
         timestampData,
         faceIdForCheckin,
-        processedData.data.status || "checkin"
+        processedData.data.status || "checkin",
+        processedData.userId // Pass userId to service for context or future use
       );
       console.log('Check-in record created:', checkinRecord);
       return {
@@ -296,7 +351,8 @@ const employeeController = {
         shift: registrationData.shift,
         registrationDate: registrationData.registrationDate,
         faceImage: registrationData.faceBase64,
-        imageAvatar: registrationData.faceEmbedding
+        imageAvatar: registrationData.faceEmbedding,
+        userId: registrationData.userId // Assign userId from MQTT message if available
       });
 
       console.log('New employee registered:', newEmployee);
@@ -336,20 +392,35 @@ const employeeController = {
         };
       }
 
+      // Authorization for admin users coming from MQTT
+      if (updateData.userId) { // userId is passed from mqtt.service if an admin manages the device
+          const managingUser = await User.findById(updateData.userId);
+
+          if (managingUser && managingUser.role === 'admin') {
+              const isAllowedByDevice = existingEmployee.data.deviceId && managingUser.devices.includes(existingEmployee.data.deviceId);
+              const isCreatedByAdmin = existingEmployee.data.userId && existingEmployee.data.userId.toString() === managingUser._id.toString();
+
+              if (!isAllowedByDevice && !isCreatedByAdmin) {
+                  return {
+                      status: 403,
+                      message: 'Forbidden: Admin does not have permission to update this employee via MQTT.',
+                      data: null
+                  };
+              }
+          }
+      }
+
       // Cập nhật thông tin
-      const updatedEmployee = await employeeService.updateEmployee(updateData.employeeId, {
-        fullName: updateData.fullName,
-        faceImage: updateData.faceBase64,
-        imageAvatar: updateData.faceEmbeddin,
-        department: existingEmployee.data.department,
-        position: existingEmployee.data.position,
-        shift: existingEmployee.data.shift,
-        registrationDate: existingEmployee.data.registrationDate,
-        email: existingEmployee.data.email,
-        phone: existingEmployee.data.phone,
-        status: existingEmployee.data.status,
-        image34: existingEmployee.data.image34
-      });
+      const updatedEmployee = await employeeService.updateEmployee(
+        { employeeId: updateData.employeeId }, // Filter
+        {
+          fullName: updateData.fullName,
+          faceImage: updateData.faceBase64,
+          imageAvatar: updateData.faceEmbedding
+          // Do not include userId here if it's the creator's ID
+          // Add other fields here if they are expected to be updated via MQTT and are in updateData
+        }
+      );
 
       console.log('Employee updated:', updatedEmployee);
       return {
@@ -648,6 +719,66 @@ const employeeController = {
       res.status(500).json({ message: 'Error processing images', error: error.message });
     }
   },
+
+  createEmployee: async (req, res) => {
+    try {
+      const { employeeId, fullName, email, phone, department, position, shift, faceImage, imageAvatar, image34, status, deviceId } = req.body;
+
+      // Validate required fields for HTTP creation
+      if (!employeeId || !fullName || !deviceId) {
+        return res.status(400).json({
+          status: 400,
+          message: 'Missing required fields: employeeId, fullName, and deviceId are required.',
+          data: null
+        });
+      }
+
+      // Check if employee already exists
+      const existingEmployee = await employeeService.getEmployeeByEmployeeIdString(employeeId);
+      if (existingEmployee.data) {
+        return res.status(409).json({
+          status: 409,
+          message: 'Employee with this ID already exists.',
+          data: null
+        });
+      }
+
+      // Prepare employee data
+      const employeeData = {
+        employeeId,
+        fullName,
+        email,
+        phone,
+        department,
+        position,
+        shift,
+        faceImage,
+        imageAvatar,
+        image34,
+        status,
+        deviceId,
+        userId: req.user._id // Assign the creator's userId
+      };
+
+      // For admin, deviceAccess middleware already verified deviceId, so just proceed
+      // Superadmin has full access
+
+      const newEmployee = await employeeService.createEmployee(employeeData);
+
+      return res.status(201).json({
+        status: 201,
+        message: 'Employee created successfully',
+        data: newEmployee
+      });
+    } catch (error) {
+      console.error('Error in createEmployee (HTTP):', error);
+      return res.status(500).json({
+        status: 500,
+        message: error.message,
+        data: null
+      });
+    }
+  }
 };
 
 module.exports = employeeController; 

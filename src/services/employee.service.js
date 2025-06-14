@@ -43,16 +43,9 @@ const employeeService = {
     }
   },
 
-  updateEmployee: async (employeeId, updateData) => {
+  updateEmployee: async (filter, updateData) => {
     try {
-      const updatedEmployee = await Employee.findOneAndUpdate(
-        { employeeId },
-        updateData,
-        { new: true }
-      ).populate([
-        { path: 'department', select: 'name' },
-        { path: 'position', select: 'name' }
-      ]);
+      const updatedEmployee = await Employee.findOneAndUpdate(filter, updateData, { new: true });
       return updatedEmployee;
     } catch (error) {
       console.error('Error in updateEmployee:', error);
@@ -60,9 +53,9 @@ const employeeService = {
     }
   },
 
-  deleteEmployee: async (employeeId) => {
+  deleteEmployee: async (filter) => {
     try {
-      const deletedEmployee = await Employee.findOneAndDelete({ employeeId });
+      const deletedEmployee = await Employee.findOneAndDelete(filter);
       return deletedEmployee;
     } catch (error) {
       console.error('Error in deleteEmployee:', error);
@@ -1173,12 +1166,12 @@ const employeeService = {
       };
 
       if (deviceIdFilter.deviceId && typeof deviceIdFilter.deviceId === 'string') {
-        checkinsQuery.deviceId = deviceIdFilter.deviceId;
+        checkinQuery.deviceId = deviceIdFilter.deviceId;
       } else if (deviceIdFilter.deviceId && deviceIdFilter.deviceId.$in) {
-        checkinsQuery.deviceId = { $in: deviceIdFilter.deviceId.$in };
+        checkinQuery.deviceId = { $in: deviceIdFilter.deviceId.$in };
       }
 
-      const checkins = await Checkin.find(checkinsQuery).sort({ employeeId: 1, timestamp: 1 });
+      const checkins = await Checkin.find(checkinQuery).sort({ employeeId: 1, timestamp: 1 });
 
       const employeeAttendance = new Map();
 

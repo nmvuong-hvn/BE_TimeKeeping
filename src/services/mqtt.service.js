@@ -145,9 +145,10 @@ class MQTTService {
         try {
           // Sử dụng processedData.employeeId string để tìm employee
           const employee = await employeeService.getEmployeeByEmployeeIdString(processedData.data.employeeId);
-          console.log("vaoooo ->> ",employee);
           if (employee.data) {
             const frontendData = {
+              userId: employee.data.userId,
+              deviceId: employee.data.deviceId,
               employeeId: employee.data.employeeId,
               fullName: employee.data.fullName,
               position: employee.data.position.name,
@@ -168,6 +169,8 @@ class MQTTService {
             // console.log(`Employee with employeeId ${processedData.employeeId} not found for frontend update.`);
             // for testing 
             const frontendData = {
+              userId: processedData.data.userId,
+              deviceId: processedData.data.deviceId,
               employeeId: processedData.data.employeeId,
               fullName: processedData.data.employeeName,
               position: "Người ngoài công ty",

@@ -1,12 +1,16 @@
 const Position = require('../models/position.model');
 
 const positionService = {
-  getPositionByName: async (name, department) => {
+  getPositionByName: async (name, department, userId = null) => {
     try {
-      const position = await Position.findOne({ 
+      const query = { 
         name: name,
-        department : department
-      });
+        department: department
+      };
+      if (userId) {
+        query.userId = userId;
+      }
+      const position = await Position.findOne(query);
       return position;
     } catch (error) {
       console.error('Error in getPositionByName:', error);
@@ -14,9 +18,13 @@ const positionService = {
     }
   },
 
-  getAllPositions: async () => {
+  getAllPositions: async (userId = null) => {
     try {
-      const positions = await Position.find({}).populate('department', 'name'); // Populate 'department' field, only select 'name'
+      const query = {};
+      if (userId) {
+        query.userId = userId;
+      }
+      const positions = await Position.find(query).populate('department', 'name'); // Populate 'department' field, only select 'name'
       return positions;
     } catch (error) {
       console.error('Error in getAllPositions:', error);
@@ -24,9 +32,13 @@ const positionService = {
     }
   },
 
-  getPositionsByDepartment: async (departmentId) => {
+  getPositionsByDepartment: async (departmentId, userId = null) => {
     try {
-      const positions = await Position.find({ department: departmentId }).populate('department', 'name');
+      const query = { department: departmentId };
+      if (userId) {
+        query.userId = userId;
+      }
+      const positions = await Position.find(query).populate('department', 'name');
       return positions;
     } catch (error) {
       console.error('Error in getPositionsByDepartment:', error);
@@ -45,7 +57,7 @@ const positionService = {
     }
   },
 
-  updatePosition: async (positionId, updateData) => {
+  updatePosition: async (positionId, updateData, userId = null) => {
     try {
       console.log("updateData = ", updateData);
       const allowedUpdates = ['name', 'updatedAt', 'createdAt'];
@@ -56,7 +68,11 @@ const positionService = {
           throw new Error('Invalid updates!');
       }
 
-      const updatedPosition = await Position.findByIdAndUpdate(positionId, { name: updateData.name }, { new: true });
+      const query = { _id: positionId };
+      if (userId) {
+        query.userId = userId;
+      }
+      const updatedPosition = await Position.findOneAndUpdate(query, { name: updateData.name }, { new: true });
       return updatedPosition;
     } catch (error) {
       console.error('Error in updatePosition:', error);
@@ -64,9 +80,13 @@ const positionService = {
     }
   },
 
-  deletePosition: async (positionId) => {
+  deletePosition: async (positionId, userId = null) => {
     try {
-      const deletedPosition = await Position.findByIdAndDelete(positionId);
+      const query = { _id: positionId };
+      if (userId) {
+        query.userId = userId;
+      }
+      const deletedPosition = await Position.findOneAndDelete(query);
       return deletedPosition;
     } catch (error) {
       console.error('Error in deletePosition:', error);

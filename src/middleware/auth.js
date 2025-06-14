@@ -17,6 +17,9 @@ const auth = async (req, res, next) => {
         req.user = user;
         next();
     } catch (e) {
+        if (e.name === 'TokenExpiredError') {
+            return res.status(401).json({ message: 'Token expired. Please log in again.' });
+        }
         res.status(401).json({ message: 'Please authenticate.' });
     }
 };

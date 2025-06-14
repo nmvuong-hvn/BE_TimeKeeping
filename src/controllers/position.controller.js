@@ -72,7 +72,8 @@ const positionController = {
       // Create new position
       const newPosition = await positionService.createPosition({
         name: positionData.name,
-        department: departmentId
+        department: departmentId,
+        userId: req.user._id
       });
 
       return res.status(201).json({
@@ -141,6 +142,10 @@ const positionController = {
     try {
       const { positionId } = req.params;
       const updateData = req.body;
+      // Prevent userId from being updated via request body
+      if (updateData.userId) {
+        delete updateData.userId;
+      }
 
       if (!positionId) {
         return res.status(400).json({

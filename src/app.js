@@ -21,6 +21,9 @@ app.use('/api/employees', require('./routes/employee.routes'));
 app.use('/api/departments', require('./routes/department.routes'));
 app.use('/api/positions', require('./routes/position.routes'));
 app.use('/api/checkins', require('./routes/checkin.routes'));
+app.use('/api/users', require('./routes/user.routes'));
+app.use('/api/devices', require('./routes/device.routes'));
+app.use('/api/auth', require('./routes/auth.routes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

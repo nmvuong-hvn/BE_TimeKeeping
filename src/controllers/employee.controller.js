@@ -149,7 +149,26 @@ const employeeController = {
 
   getAllEmployees: async (req, res) => {
     try {
-      const employees = await employeeService.getAllEmployees();
+      let filter = {};
+      if (req.user.role === 'admin') {
+        if (req.query.deviceId) {
+          // If deviceId is provided in query, filter by that specific deviceId
+          if (!req.user.devices.includes(req.query.deviceId)) {
+            return res.status(403).json({
+              status: 403,
+              message: 'Forbidden: You do not have access to this deviceId.',
+              data: null
+            });
+          }
+          filter.deviceId = req.query.deviceId;
+        } else {
+          // If no deviceId in query, filter by all devices assigned to the admin
+          filter.deviceId = { $in: req.user.devices };
+        }
+      }
+      // Superadmin does not need deviceId filtering, so filter remains empty
+
+      const employees = await employeeService.getAllEmployees(filter);
       return res.status(200).json({
         status: 200,
         message: 'Employees retrieved successfully',
@@ -350,11 +369,33 @@ const employeeController = {
 
   getLateEmployees: async (req, res) => {
     try {
-      const { date, departmentId } = req.query;
-      
+      const { date, departmentId, deviceId } = req.query;
+      let filter = {};
+
+      if (req.user.role === 'admin') {
+        if (deviceId) {
+          if (!req.user.devices.includes(deviceId)) {
+            return res.status(403).json({
+              status: 403,
+              message: 'Forbidden: You do not have access to this deviceId.',
+              data: null
+            });
+          }
+          filter.deviceId = deviceId;
+        } else {
+          filter.deviceId = { $in: req.user.devices };
+        }
+      }
+      // Superadmin does not need deviceId filtering
+
+      if (departmentId) {
+        filter.department = departmentId;
+      }
+
       // Convert date to GMT+7
-      let targetDate = date ? new Date(date) : new Date();      
-      const result = await employeeService.getLateEmployees(targetDate, departmentId);
+      let targetDate = date ? new Date(date) : new Date();
+
+      const result = await employeeService.getLateEmployees(targetDate, filter);
       res.status(result.status).json(result);
     } catch (error) {
       res.status(500).json({
@@ -367,13 +408,34 @@ const employeeController = {
 
   getEarlyLeaveEmployees: async (req, res) => {
     try {
-      const { date, departmentId } = req.query;
+      const { date, departmentId, deviceId } = req.query;
+      let filter = {};
+
+      if (req.user.role === 'admin') {
+        if (deviceId) {
+          if (!req.user.devices.includes(deviceId)) {
+            return res.status(403).json({
+              status: 403,
+              message: 'Forbidden: You do not have access to this deviceId.',
+              data: null
+            });
+          }
+          filter.deviceId = deviceId;
+        } else {
+          filter.deviceId = { $in: req.user.devices };
+        }
+      }
+      // Superadmin does not need deviceId filtering
+
+      if (departmentId) {
+        filter.department = departmentId;
+      }
       
       // Convert date to GMT+7
       let targetDate = date ? new Date(date) : new Date();
       console.log("targetDateNow: ", targetDate);
       
-      const result = await employeeService.getEarlyLeaveEmployees(targetDate, departmentId);
+      const result = await employeeService.getEarlyLeaveEmployees(targetDate, filter);
       res.status(result.status).json(result);
     } catch (error) {
       res.status(500).json({
@@ -386,9 +448,31 @@ const employeeController = {
 
   getOvertimeEmployees: async (req, res) => {
     try {
-      const { date, departmentId } = req.query;
+      const { date, departmentId, deviceId } = req.query;
+      let filter = {};
+
+      if (req.user.role === 'admin') {
+        if (deviceId) {
+          if (!req.user.devices.includes(deviceId)) {
+            return res.status(403).json({
+              status: 403,
+              message: 'Forbidden: You do not have access to this deviceId.',
+              data: null
+            });
+          }
+          filter.deviceId = deviceId;
+        } else {
+          filter.deviceId = { $in: req.user.devices };
+        }
+      }
+      // Superadmin does not need deviceId filtering
+
+      if (departmentId) {
+        filter.department = departmentId;
+      }
+
       let targetDate = date ? new Date(date) : new Date();
-      const result = await employeeService.getOvertimeEmployees(targetDate, departmentId);
+      const result = await employeeService.getOvertimeEmployees(targetDate, filter);
       res.status(result.status).json(result);
     } catch (error) {
       res.status(500).json({

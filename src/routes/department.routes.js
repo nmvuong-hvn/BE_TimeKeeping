@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const departmentController = require('../controllers/department.controller');
+const { auth, requireAdminOrSuperAdmin } = require('../middleware/auth');
 
 /**
  * @swagger
@@ -18,7 +19,7 @@ const departmentController = require('../controllers/department.controller');
  *               items:
  *                 $ref: '#/components/schemas/Department'
  */
-router.get('/', departmentController.getAllDepartments);
+router.get('/', auth, requireAdminOrSuperAdmin, departmentController.getAllDepartments);
 
 /**
  * @swagger
@@ -40,7 +41,7 @@ router.get('/', departmentController.getAllDepartments);
  *             schema:
  *               $ref: '#/components/schemas/Department'
  */
-router.post('/', departmentController.createDepartment);
+router.post('/', auth, requireAdminOrSuperAdmin, departmentController.createDepartment);
 
 /**
  * @swagger
@@ -70,7 +71,7 @@ router.post('/', departmentController.createDepartment);
  *       404:
  *         description: Department not found
  */
-router.put('/:departmentId', departmentController.updateDepartment);
+router.put('/:departmentId', auth, requireAdminOrSuperAdmin, departmentController.updateDepartment);
 
 /**
  * @swagger
@@ -90,6 +91,6 @@ router.put('/:departmentId', departmentController.updateDepartment);
  *       404:
  *         description: Department not found
  */
-router.delete('/:departmentId', departmentController.deleteDepartment);
+router.delete('/:departmentId', auth, requireAdminOrSuperAdmin, departmentController.deleteDepartment);
 
 module.exports = router; 

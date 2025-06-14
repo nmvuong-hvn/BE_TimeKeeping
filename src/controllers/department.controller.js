@@ -58,7 +58,7 @@ const departmentController = {
 
   createDepartment: async (req, res) => {
     try {
-      const departmentData = req.body;
+      const departmentData = { ...req.body, userId: req.user._id };
       console.log("departmentData = ", departmentData);
       
       const newDepartment = await departmentService.createDepartment(departmentData);
@@ -81,6 +81,10 @@ const departmentController = {
     try {
       const departmentId = req.params.departmentId;
       const updateData = req.body;
+      // Prevent userId from being updated via request body
+      if (updateData.userId) {
+        delete updateData.userId;
+      }
       const updatedDepartment = await departmentService.updateDepartment(departmentId, updateData);
       if (!updatedDepartment) {
         return res.status(404).json({

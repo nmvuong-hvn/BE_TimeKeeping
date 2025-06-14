@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const positionController = require('../controllers/position.controller');
+const { auth, requireAdminOrSuperAdmin } = require('../middleware/auth');
 
 /**
  * @swagger
@@ -18,7 +19,7 @@ const positionController = require('../controllers/position.controller');
  *               items:
  *                 $ref: '#/components/schemas/Position'
  */
-router.get('/', positionController.getAllPositions);
+router.get('/', auth, requireAdminOrSuperAdmin, positionController.getAllPositions);
 
 /**
  * @swagger
@@ -40,7 +41,7 @@ router.get('/', positionController.getAllPositions);
  *             schema:
  *               $ref: '#/components/schemas/Position'
  */
-router.post('/', positionController.createPosition);
+router.post('/', auth, requireAdminOrSuperAdmin, positionController.createPosition);
 
 /**
  * @swagger
@@ -66,7 +67,7 @@ router.post('/', positionController.createPosition);
  *       404:
  *         description: Department not found
  */
-router.get('/department/:departmentId', positionController.getPositionsByDepartment);
+router.get('/department/:departmentId', auth, requireAdminOrSuperAdmin, positionController.getPositionsByDepartment);
 
 /**
  * @swagger
@@ -96,7 +97,7 @@ router.get('/department/:departmentId', positionController.getPositionsByDepartm
  *       404:
  *         description: Position not found
  */
-router.put('/:positionId', positionController.updatePosition);
+router.put('/:positionId', auth, requireAdminOrSuperAdmin, positionController.updatePosition);
 
 /**
  * @swagger
@@ -116,6 +117,6 @@ router.put('/:positionId', positionController.updatePosition);
  *       404:
  *         description: Position not found
  */
-router.delete('/:positionId', positionController.deletePosition);
+router.delete('/:positionId', auth, requireAdminOrSuperAdmin, positionController.deletePosition);
 
 module.exports = router; 

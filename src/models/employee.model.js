@@ -55,6 +55,11 @@ const employeeSchema = new mongoose.Schema({
     type: String,
     enum: ['active', 'inactive'],
     default: 'active'
+  },
+  deviceId: {
+    type: String,
+    required: false,
+    trim: true
   }
 }, {
   timestamps: true

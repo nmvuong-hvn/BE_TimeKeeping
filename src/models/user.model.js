@@ -13,8 +13,11 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,
     required: true,
-    enum: ['super_admin', 'admin']
-  }
+    enum: ['superadmin', 'admin']
+  },
+  devices: [{
+    type: String
+  }]
 }, {
   timestamps: true // Adds createdAt and updatedAt timestamps
 });

@@ -47,7 +47,8 @@ const positionService = {
 
   updatePosition: async (positionId, updateData) => {
     try {
-      const allowedUpdates = ['name'];
+      console.log("updateData = ", updateData);
+      const allowedUpdates = ['name', 'updatedAt', 'createdAt'];
       const updates = Object.keys(updateData);
       const isValidOperation = updates.every((update) => allowedUpdates.includes(update));
 

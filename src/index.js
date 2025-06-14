@@ -9,6 +9,9 @@ const employeeRoutes = require('./routes/employee.routes'); // Import employee r
 const positionRoutes = require('./routes/position.routes'); // Import position routes
 const departmentRoutes = require('./routes/department.routes'); // Import department routes
 const checkinRoutes = require('./routes/checkin.routes'); // Import checkin routes
+const userRoutes = require('./routes/user.routes'); // Import user routes
+const deviceRoutes = require('./routes/device.routes'); // Import device routes
+const authRoutes = require('./routes/auth.routes'); // Import auth routes
 const cors = require('cors'); // Import cors for handling cross-origin requests
 
 // Initialize Express app
@@ -44,6 +47,10 @@ app.use('/api/employees', employeeRoutes);
 app.use('/api/positions', positionRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/checkins', checkinRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/devices', deviceRoutes);
+app.use('/api/auth', authRoutes);
+
 // Connect to MQTT broker
 mqttService.connect();
 

@@ -4,21 +4,13 @@ const deviceSchema = new mongoose.Schema({
   deviceId: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    trim: true,
   },
-  password: {
+  name: {
     type: String,
-    required: true
-  },
-  managedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User' 
-  },
-  location: {
-    type: String
-  },
-  description: {
-    type: String
+    required: true,
+    trim: true,
   }
 }, {
   timestamps: true

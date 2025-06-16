@@ -1,67 +1,144 @@
 const deviceService = require('../services/device.service');
 
-const getAllDevices = async (req, res) => {
+const deviceController = {
+  getAllDevices: async (req, res) => {
     try {
-        const devices = await deviceService.getAllDevices();
-        res.status(200).json(devices);
+      const userId = req.user.role === 'admin' ? req.user._id : null;
+      const devices = await deviceService.getAllDevices(userId);
+      
+      return res.status(200).json({
+        status: 200,
+        message: 'Devices retrieved successfully',
+        data: devices
+      });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+      console.error('Error in getAllDevices:', error);
+      return res.status(500).json({
+        status: 500,
+        message: error.message,
+        data: null
+      });
     }
+  },
+
+  getDeviceById: async (req, res) => {
+    try {
+      const { deviceId } = req.params;
+      const userId = req.user.role === 'admin' ? req.user._id : null;
+      
+      const device = await deviceService.getDeviceById(deviceId, userId);
+      if (!device) {
+        return res.status(404).json({
+          status: 404,
+          message: 'Device not found',
+          data: null
+        });
+      }
+
+      return res.status(200).json({
+        status: 200,
+        message: 'Device retrieved successfully',
+        data: device
+      });
+    } catch (error) {
+      console.error('Error in getDeviceById:', error);
+      return res.status(500).json({
+        status: 500,
+        message: error.message,
+        data: null
+      });
+    }
+  },
+
+  createDevice: async (req, res) => {
+    try {
+      const deviceData = { deviceId : req.body.code , name : req.body.name, userId: req.user._id };
+      console.log("deviceData = ", deviceData);
+      const newDevice = await deviceService.createDevice(deviceData);
+      
+      return res.status(201).json({
+        status: 201,
+        message: 'Device created successfully',
+        data: newDevice
+      });
+    } catch (error) {
+      console.error('Error in createDevice:', error);
+      return res.status(500).json({
+        status: 500,
+        message: error.message,
+        data: null
+      });
+    }
+  },
+
+  updateDevice: async (req, res) => {
+    try {
+    
+
+      const { id } = req.params;
+      const updateData = req.body;
+      updateData.deviceId = id ;
+      const userId = req.user.role === 'admin' ? req.user._id : null;
+      
+      // Prevent userId from being updated via request body
+      if (updateData.userId) {
+        delete updateData.userId;
+      }
+      
+      const updatedDevice = await deviceService.updateDevice(id, updateData, userId);
+      if (!updatedDevice) {
+        return res.status(404).json({
+          status: 404,
+          message: 'Device not found',
+          data: null
+        });
+      }
+
+      return res.status(200).json({
+        status: 200,
+        message: 'Device updated successfully',
+        data: updatedDevice
+      });
+    } catch (error) {
+      console.error('Error in updateDevice:', error);
+      return res.status(500).json({
+        status: 500,
+        message: error.message,
+        data: null
+      });
+    }
+  },
+
+  deleteDevice: async (req, res) => {
+    try {
+   
+
+      const { id } = req.params;
+      const userId = req.user.role === 'admin' ? req.user._id : null;
+      
+      const deletedDevice = await deviceService.deleteDevice(id, userId);
+      if (!deletedDevice) {
+        return res.status(404).json({
+          status: 404,
+          message: 'Device not found',
+          data: null
+        });
+      }
+
+      return res.status(200).json({
+        status: 200,
+        message: 'Device deleted successfully',
+        data: deletedDevice
+      });
+    } catch (error) {
+      console.error('Error in deleteDevice:', error);
+      return res.status(500).json({
+        status: 500,
+        message: error.message,
+        data: null
+      });
+    }
+  }
 };
 
-const getDeviceById = async (req, res) => {
-    try {
-        const device = await deviceService.getDeviceById(req.params.id);
-        if (!device) {
-            return res.status(404).json({ message: 'Device not found' });
-        }
-        res.status(200).json(device);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-const createDevice = async (req, res) => {
-    try {
-        const existingDevice = await deviceService.getDeviceByDeviceId(req.body.deviceId);
-        if (existingDevice) {
-            return res.status(409).json({ message: 'Device with this deviceId already exists' });
-        }
-        const newDevice = await deviceService.createDevice(req.body);
-        res.status(201).json(newDevice);
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
-};
-
-const updateDevice = async (req, res) => {
-    try {
-        const updatedDevice = await deviceService.updateDevice(req.params.id, req.body);
-        if (!updatedDevice) {
-            return res.status(404).json({ message: 'Device not found' });
-        }
-        res.status(200).json(updatedDevice);
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
-};
-
-const deleteDevice = async (req, res) => {
-    try {
-        const deletedDevice = await deviceService.deleteDevice(req.params.id);
-        if (!deletedDevice) {
-            return res.status(404).json({ message: 'Device not found' });
-        }
-        res.status(200).json({ message: 'Device deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-module.exports = {
-    getAllDevices,
-    getDeviceById,
-    createDevice,
-    updateDevice,
-    deleteDevice
-};    
+module.exports = deviceController;    

@@ -4,21 +4,55 @@ const bcrypt = require('bcryptjs');
 const getAllUsers = async (req, res) => {
     try {
         const users = await userService.getAllUsers();
-        res.status(200).json(users);
+        
+        return res.status(200).json({
+            status: 200,
+            message: 'Users retrieved successfully',
+            data: users
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Error in getAllUsers:', error);
+        return res.status(500).json({
+            status: 500,
+            message: error.message,
+            data: null
+        });
     }
 };
 
 const getUserById = async (req, res) => {
     try {
-        const user = await userService.getUserById(req.params.id);
+        const { id } = req.params;
+        console.log("Getting user by ID:", id);
+
+        const user = await userService.getUserById(id);
+        console.log("Found user:", user);
+
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(404).json({
+                status: 404,
+                message: 'User not found',
+                data: null
+            });
         }
-        res.status(200).json(user);
+
+        return res.status(200).json({
+            status: 200,
+            message: 'User retrieved successfully',
+            data: {
+                _id: user._id,
+                username: user.username,
+                role: user.role,
+                devices: user.devices
+            }
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Error in getUserById:', error);
+        return res.status(500).json({
+            status: 500,
+            message: error.message,
+            data: null
+        });
     }
 };
 
@@ -42,6 +76,7 @@ const createUser = async (req, res) => {
             role,
             devices: role === 'admin' ? (devices || []) : [] // Only assign devices if role is admin
         });
+        console.log("newUser = ", newUser)
         res.status(201).json(newUser);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -85,10 +120,76 @@ const deleteUser = async (req, res) => {
     }
 };
 
-module.exports = {
+const assignDevices = async (req, res) => {
+    try {
+        console.log("Assign devices request body:", req.body);
+        const { adminId, deviceIds } = req.body;
+
+        if (!adminId || !deviceIds || !Array.isArray(deviceIds)) {
+            console.log("Validation failed - Missing required fields");
+            return res.status(400).json({
+                status: 400,
+                message: 'Admin ID and array of device IDs are required',
+                data: null
+            });
+        }
+
+        console.log("Calling userService.assignDevices with:", { adminId, deviceIds });
+        const updatedAdmin = await userService.assignDevices(adminId, deviceIds);
+        console.log("Updated admin result:", updatedAdmin);
+        
+        return res.status(200).json({
+            status: 200,
+            message: 'Devices assigned successfully',
+            data: {
+                _id: updatedAdmin._id,
+                username: updatedAdmin.username,
+                role: updatedAdmin.role,
+                devices: updatedAdmin.devices
+            }
+        });
+    } catch (error) {
+        console.error('Error in assignDevices:', error);
+        
+        if (error.message.includes('Invalid admin ID format')) {
+            return res.status(400).json({
+                status: 400,
+                message: error.message,
+                data: null
+            });
+        }
+
+        if (error.message.includes('Admin not found')) {
+            return res.status(404).json({
+                status: 404,
+                message: error.message,
+                data: null
+            });
+        }
+        
+        if (error.message.includes('devices not found')) {
+            return res.status(400).json({
+                status: 400,
+                message: error.message,
+                data: null
+            });
+        }
+
+        return res.status(500).json({
+            status: 500,
+            message: error.message,
+            data: null
+        });
+    }
+};
+
+const userController = {
     getAllUsers,
     getUserById,
     createUser,
     updateUser,
-    deleteUser
-}; 
+    deleteUser,
+    assignDevices
+};
+
+module.exports = userController; 

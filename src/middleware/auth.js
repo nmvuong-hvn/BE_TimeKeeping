@@ -6,13 +6,13 @@ const auth = async (req, res, next) => {
     try {
         const token = req.header('Authorization').replace('Bearer ', '');
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log("decoded = ", decoded);
         const user = await User.findOne({ _id: new mongoose.Types.ObjectId(decoded.id) });
-        console.log("user = ", user);
         if (!user) {
             throw new Error();
         }
 
+        console.log("VAO DAY");
+        
         req.token = token;
         req.user = user;
         next();
@@ -25,6 +25,8 @@ const auth = async (req, res, next) => {
 };
 
 const requireSuperAdmin = (req, res, next) => {
+    console.log("req.user.role = ",req.user.role );
+    
     if (req.user.role !== 'superadmin') {
         return res.status(403).json({ message: 'Forbidden: Superadmin access required.' });
     }

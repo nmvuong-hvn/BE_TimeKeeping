@@ -94,6 +94,7 @@ const positionController = {
 
   getAllPositions: async (req, res) => {
     try {
+      console.log("req position  = ", req);
       const userId = req.user.role === 'admin' ? req.user._id : null;
       const positions = await positionService.getAllPositions(userId);
       return res.status(200).json({

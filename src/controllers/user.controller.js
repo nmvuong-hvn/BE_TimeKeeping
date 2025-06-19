@@ -43,6 +43,7 @@ const getUserById = async (req, res) => {
                 _id: user._id,
                 username: user.username,
                 role: user.role,
+                email: user.email,
                 devices: user.devices
             }
         });
@@ -58,7 +59,7 @@ const getUserById = async (req, res) => {
 
 const createUser = async (req, res) => {
     try {
-        const { username, password, role, devices } = req.body;
+        const { username, password, role, devices, email } = req.body;
         console.log("req.body = ", req.body);
 
         // Check if user already exists
@@ -74,6 +75,7 @@ const createUser = async (req, res) => {
             username,
             password: hashedPassword,
             role,
+            email,
             devices: role === 'admin' ? (devices || []) : [] // Only assign devices if role is admin
         });
         console.log("newUser = ", newUser)
@@ -145,6 +147,7 @@ const assignDevices = async (req, res) => {
                 _id: updatedAdmin._id,
                 username: updatedAdmin.username,
                 role: updatedAdmin.role,
+                email: updatedAdmin.email,
                 devices: updatedAdmin.devices
             }
         });

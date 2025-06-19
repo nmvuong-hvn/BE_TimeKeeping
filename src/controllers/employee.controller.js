@@ -459,7 +459,7 @@ const employeeController = {
       }
       // Superadmin does not need deviceId filtering
 
-      if (departmentId) {
+      if (departmentId != "all") {
         filter.department = departmentId;
       }
 
@@ -498,7 +498,7 @@ const employeeController = {
       }
       // Superadmin does not need deviceId filtering
 
-      if (departmentId) {
+      if (departmentId != "all") {
         filter.department = departmentId;
       }
       
@@ -538,7 +538,7 @@ const employeeController = {
       }
       // Superadmin does not need deviceId filtering
 
-      if (departmentId) {
+      if (departmentId != "all") {
         filter.department = departmentId;
       }
 

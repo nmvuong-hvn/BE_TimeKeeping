@@ -259,8 +259,8 @@ const getAllCheckinsToday = async (req, res) => {
         checkIn: checkinTime.toISOString().replace('T', ' ').replace('Z', '').split('.')[0],
       });
     });
-
-    res.json({
+    console.log("result = ", result);
+    res.status(200).json({
       success: true,
       data: result
     });
